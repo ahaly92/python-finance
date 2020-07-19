@@ -1,2 +1,4 @@
 .idea
 venv
+stock_dfs
+*pycache*
