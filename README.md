@@ -7,4 +7,4 @@ data consumption, visualization &amp; ML using python
 4. Calculates correlations between all of the companies
 5. Plots heatmap of correlations
 
-![alt tag](https://github.com/github/python-finance/assets/heatmap_correlation.png )
+![alt tag](https://github.com/ahaly92/python-finance/blob/master/assets/heatmap_correlation.png)
