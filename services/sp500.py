@@ -3,6 +3,8 @@ import os
 import pickle
 
 import bs4 as bs
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import pandas_datareader.data as web
 import requests
@@ -23,46 +25,84 @@ def save_sp500_tickers():
 
 
 def get_ticker_data(reload_sp500=False):
+    create_folder_structure()
     if reload_sp500:
         tickers = save_sp500_tickers()
     else:
         with open("sp500.pickle", "rb") as f:
             tickers = pickle.load(f)
 
-    if not os.path.exists('stock_dfs'):
-        os.makedirs('stock_dfs')
-
     start = dt.datetime(2000, 1, 1)
     end = dt.datetime(2020, 7, 15)
 
     for ticker in tickers:
-        print(ticker)
         if not os.path.exists('stock_dfs/{}.csv'.format(ticker)):
             df = web.DataReader(ticker, 'yahoo', start, end)
             df.to_csv('stock_dfs/{}.csv'.format(ticker))
         else:
             print('Already have {}'.format(ticker))
 
+    compile_data(reload_sp500)
 
-def compile_data():
-    with open("sp500.pickle", "rb") as f:
-        tickers = pickle.load(f)
 
-    main_df = pd.DataFrame()
+def compile_data(reload_sp500=False):
+    create_folder_structure()
+    if reload_sp500 or not os.path.exists('stock_dfs/joined/sp500_joined_closes.csv'):
+        with open("sp500.pickle", "rb") as f:
+            tickers = pickle.load(f)
 
-    for count, ticker in enumerate(tickers):
-        df = pd.read_csv('stock_dfs/{}.csv'.format(ticker))
-        df.set_index('Date', inplace=True)
+        main_df = pd.DataFrame()
 
-        df.rename(columns={'Adj Close': ticker}, inplace=True)
-        df.drop(['Open', 'High', 'Low', 'Close', 'Volume'], 1, inplace=True)
+        for count, ticker in enumerate(tickers):
+            df = pd.read_csv('stock_dfs/{}.csv'.format(ticker))
+            df.set_index('Date', inplace=True)
 
-        if main_df.empty:
-            main_df = df
-        else:
-            main_df = main_df.join(df, how='outer')
+            df.rename(columns={'Adj Close': ticker}, inplace=True)
+            df.drop(['Open', 'High', 'Low', 'Close', 'Volume'], 1, inplace=True)
 
-        if count % 10 == 0:
-            print(count)
+            if main_df.empty:
+                main_df = df
+            else:
+                main_df = main_df.join(df, how='outer')
 
-    main_df.to_csv('stock_dfs/sp500_joined_closes.csv')
+            if count % 10 == 0:
+                print(count)
+
+        main_df.to_csv('stock_dfs/joined/sp500_joined_closes.csv')
+
+
+def visualize_data():
+    df = pd.read_csv('stock_dfs/joined/sp500_joined_closes.csv')
+    df_corr = df.corr()
+    print(df_corr.head())
+
+    data = df_corr.values
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+
+    heatmap = ax.pcolor(data, cmap=plt.cm.RdYlGn)
+    fig.colorbar(heatmap)
+    ax.set_xticks(np.arange(data.shape[0]) + 0.5, minor=False)
+    ax.set_yticks(np.arange(data.shape[1]) + 0.5, minor=False)
+    ax.invert_yaxis()
+    ax.xaxis.tick_top()
+
+    column_labels = df_corr.columns
+    row_labels = df_corr.index
+
+    ax.set_xticklabels(column_labels)
+    ax.set_yticklabels(row_labels)
+
+    plt.xticks(rotation=90)
+    heatmap.set_clim(-1, 1)
+    plt.tight_layout()
+
+    plt.show()
+
+
+def create_folder_structure():
+    if not os.path.exists('stock_dfs'):
+        os.makedirs('stock_dfs')
+
+    if not os.path.exists('stock_dfs/joined'):
+        os.makedirs('stock_dfs/joined')

@@ -1,7 +1,8 @@
 from matplotlib import style
 
-from services.sp500 import compile_data
+from services.sp500 import get_ticker_data, visualize_data
 
 style.use('ggplot')
 
-compile_data()
+get_ticker_data()
+visualize_data()
